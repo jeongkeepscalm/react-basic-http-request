@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback } from "react";
 
 import Places from "./components/Places.jsx";
 import Modal from "./components/Modal.jsx";
@@ -7,33 +7,20 @@ import logoImg from "./assets/logo.png";
 import AvailablePlaces from "./components/AvailablePlaces.jsx";
 import ErrorPage from "./components/ErrorPage.jsx";
 import { fetchUserPlaces, updateUserPlaces } from "./http.js";
+import { useFetch } from "./hooks/useFetch.js";
 
 function App() {
   const selectedPlace = useRef();
-  const [userPlaces, setUserPlaces] = useState([]);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [errorUpdatingPlaces, setErrorUpdatingPlaces] = useState();
-  const [isFetching, setIsFetching] = useState(false);
-  const [error, setError] = useState();
 
-  useEffect(() => {
-    async function fetchPlaces() {
-      setIsFetching(true);
-
-      try {
-        const places = await fetchUserPlaces();
-        setUserPlaces(places);
-      } catch (error) {
-        setError({
-          message: error.message || "Failed to fetch user's places.",
-        });
-      }
-
-      setIsFetching(false);
-    }
-
-    fetchPlaces();
-  }, []);
+  // 커스텀 Hook 사용: 더 효율적인 컴포넌트를 만들기위해
+  const {
+    isFetching,
+    error,
+    fetchedData: userPlaces,
+    setFetchedData: setUserPlaces
+  } = useFetch(fetchUserPlaces, []);
 
   function handleStartRemovePlace(place) {
     setModalIsOpen(true);
@@ -92,12 +79,15 @@ function App() {
 
       setModalIsOpen(false);
     },
-    [userPlaces]
+    [userPlaces, setUserPlaces]
   );
 
   return (
     <>
-      <Modal open={errorUpdatingPlaces} onClose={handleError}>
+      <Modal
+        open={errorUpdatingPlaces}
+        onClose={handleError}
+      >
         {errorUpdatingPlaces && (
           <ErrorPage
             title={"An error occurred!"}
@@ -137,7 +127,9 @@ function App() {
           />
         )}
 
-        <AvailablePlaces onSelectPlace={handleSelectPlace} />
+        <AvailablePlaces
+          onSelectPlace={handleSelectPlace}
+        />
       </main>
     </>
   );

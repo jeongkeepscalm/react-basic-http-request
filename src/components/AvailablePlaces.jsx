@@ -1,40 +1,33 @@
-import { useState, useEffect } from "react";
 import Places from "./Places.jsx";
 import ErrorPage from "./ErrorPage.jsx";
 import { sortPlacesByDistance } from "../loc.js";
 import { fetchAvailablePlaces } from "../http.js";
+import { useFetch } from "../hooks/useFetch.js";
+
+async function fetchSortedPlaces() {
+  const places = await fetchAvailablePlaces();
+
+  // async 키워드가 붙은 함수는 항상 Promise를 반환
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition((position) => {
+      const sortedPlaces = sortPlacesByDistance(
+        places,
+        position.coords.latitude,
+        position.coords.longitude
+      );
+
+      resolve(sortedPlaces);
+    });
+  })
+}
 
 export default function AvailablePlaces({ onSelectPlace }) {
-  const [availablePlaces, setAvailablePlaces] = useState([]);
-  const [isFetching, setIsFetching] = useState(false);
-  const [error, setError] = useState();
-
-  useEffect(() => {
-    async function fetchPlaces() {
-
-      setIsFetching(true);
-
-      try {
-
-        const places = await fetchAvailablePlaces();
-
-        navigator.geolocation.getCurrentPosition((position) => {
-          const sortedPlaces = sortPlacesByDistance(
-            places,
-            position.coords.latitude,
-            position.coords.longitude
-          );
-          setAvailablePlaces(sortedPlaces);
-          setIsFetching(false);
-        });
-      } catch (error) {
-        setError({ message: error.message || "eeeerror" });
-        setIsFetching(false);
-      }
-    }
-
-    fetchPlaces();
-  }, []); // []: AvailablePlaces 컴포넌트가 처음 마운트(첫 렌더링)될 때만 실행
+  // 커스텀 Hook 사용
+  const {
+    isFetching,
+    error,
+    fetchedData: availablePlaces
+  } = useFetch(fetchSortedPlaces, []);
 
   if (error) {
     return (
